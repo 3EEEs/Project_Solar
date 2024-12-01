@@ -26,7 +26,7 @@ function calculateEnergyOutput(irradiance, efficiency, area) {
  */
 function calculateCostSavings(energyOutput, energyCost, energyUsage) {
   if (energyOutput <= 0) return 0;
-  return Math.abs(energyOutput - energyUsage) * energyCost; // Savings in $
+  return Math.min(energyOutput, energyUsage) * energyCost; // Savings in $
 }
 
 /**
