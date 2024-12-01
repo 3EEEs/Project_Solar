@@ -8,12 +8,13 @@ import { stateData } from "./StateData";
  * @param {number} irradiance - Average solar irradiance (kWh/m²/day).
  * @param {number} efficiency - Solar panel efficiency (decimal form, e.g., 0.20 for 20%).
  * @param {number} area - Total area of solar panels in square feet.
+ * @param {number} sunlightHours - Average hours of sunlight per day.
  * @returns {number} Total energy output in kWh/year.
  */
-function calculateEnergyOutput(irradiance, efficiency, area) {
+function calculateEnergyOutput(irradiance, efficiency, area, sunlightHours) {
   if (area <= 0) return 0; // No energy produced if area is 0 or negative
   const areaInMeters = area * 0.092903; // Convert area from ft² to m²
-  return irradiance * efficiency * areaInMeters * 365; // Energy output in kWh/year
+  return irradiance * efficiency * areaInMeters * sunlightHours * 365; // Energy output in kWh/year
 }
 
 /**
@@ -37,6 +38,7 @@ function calculateCostSavings(energyOutput, energyCost, energyUsage) {
  * @param {number} energyUsage - Household energy consumption (kWh/year).
  * @param {number} savings - Initial savings per year ($).
  * @param {number} priceIncreaseRate - Annual increase in electricity price (as a decimal).
+ * @param {number} sunlightHours - Average hours of sunlight per day.
  * @returns {number} Payback period in years.
  */
 function calculatePaybackPeriodWithPriceIncrease(
@@ -45,6 +47,7 @@ function calculatePaybackPeriodWithPriceIncrease(
   energyUsage,
   savings,
   priceIncreaseRate,
+  sunlightHours,
 ) {
   let cumulativeSavings = 0;
   let years = 0;
@@ -58,16 +61,19 @@ function calculatePaybackPeriodWithPriceIncrease(
     if (cumulativeSavings >= initialCost) break;
   }
 
-  return years;
+  // Adjust payback period based on sunlight hours (sunlight factor)
+  const sunlightFactor = 2 - (sunlightHours / 24); // Sunlight factor decreases with fewer sunlight hours
+  return years * sunlightFactor; // Adjusted payback period
 }
 
 /**
  * Assess the viability of a solar investment, considering electricity price increases over time.
  * @param {Object} solarInvestment - Details of the investment (location, energy cost, etc.).
  * @param {Object} panel - The solar panel type being used (efficiency, cost).
+ * @param {number} sunlightHours - Average hours of sunlight per day.
  * @returns {Object} Results of the assessment including energy output, yearly savings, payback period, and viability.
  */
-export function assessSolarViability(solarInvestment, panel) {
+export function assessSolarViability(solarInvestment, panel, sunlightHours) {
   const state = solarInvestment.location;
   const stateInfo = stateData[state];
 
@@ -83,6 +89,7 @@ export function assessSolarViability(solarInvestment, panel) {
     irradiance,
     panel.efficiency,
     solarInvestment.realEstateArea,
+    sunlightHours
   );
 
   const energyUsage = 10800; // kWh/year (default household energy usage)
@@ -99,11 +106,7 @@ export function assessSolarViability(solarInvestment, panel) {
     };
   }
 
-  const yearlySavings = calculateCostSavings(
-    energyOutput,
-    energyCost,
-    energyUsage,
-  );
+  const yearlySavings = calculateCostSavings(energyOutput, energyCost, energyUsage);
   const initialCost = panel.costPerSquareFoot * solarInvestment.realEstateArea;
 
   // Use the function considering price increase for calculating the payback period
@@ -113,6 +116,7 @@ export function assessSolarViability(solarInvestment, panel) {
     energyUsage,
     yearlySavings,
     0.03,
+    sunlightHours
   );
 
   const viable = paybackPeriod <= 10; // Viable if payback period is ≤ 10 years
@@ -122,7 +126,7 @@ export function assessSolarViability(solarInvestment, panel) {
     energyOutput: `${energyOutput.toFixed(2)} kWh/year`,
     yearlySavings: `$${yearlySavings.toFixed(2)}/year`,
     initialCost: `$${initialCost.toFixed(2)}`,
-    paybackPeriod: `${paybackPeriod} years`,
+    paybackPeriod: `${paybackPeriod.toFixed(2)} years`,
     viability: viable ? "Yes" : "No",
   };
 }
