@@ -10,7 +10,7 @@ function App() {
     location: "Please Select", // Default to "Please Select"
     energyCost: "",
     realEstateArea: "",
-    householdSize: "",
+    sunlightHours: "", // Changed from householdSize to sunlightHours
     panelType: "Please Select", // Default to "Please Select"
   });
 
@@ -37,7 +37,7 @@ function App() {
       formData.location,
       parseFloat(formData.energyCost),
       parseFloat(formData.realEstateArea),
-      parseInt(formData.householdSize, 10),
+      parseFloat(formData.sunlightHours), // Updated parameter
       formData.panelType,
     );
 
@@ -50,7 +50,11 @@ function App() {
           : 0.15,
     );
 
-    const viabilityResult = assessSolarViability(investment, panel);
+    const viabilityResult = assessSolarViability(
+      investment,
+      panel,
+      parseFloat(formData.sunlightHours),
+    ); // Pass sunlightHours
     setResult(viabilityResult);
   };
 
@@ -96,12 +100,13 @@ function App() {
           />
         </label>
         <label className="form-label">
-          Household Size:
+          Average Sunlight Hours per Day:
           <input
             type="number"
-            name="householdSize"
-            value={formData.householdSize}
+            name="sunlightHours"
+            value={formData.sunlightHours}
             onChange={handleChange}
+            step="0.1"
             className="form-input"
           />
         </label>
